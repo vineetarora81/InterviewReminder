@@ -65,12 +65,6 @@ def extract_datetime(prop):
     return None
 
 
-# 🧠 Send reminder (you can modify this to send WhatsApp or email)
-def send_reminder(name, phone, interview_time):
-    print(f"📤 Reminder sent to {name} ({phone}) for interview at {interview_time.strftime('%Y-%m-%d %H:%M')}")
-    # You can replace this with WhatsApp API or send_email() call
-
-
 # 🚀 Main script
 def main():
     print("⏳ Querying Notion database...")
@@ -89,32 +83,50 @@ def main():
         try:
             props = result["properties"]
 
-            name = extract_text(props.get("Name"))
-            phone = extract_text(props.get("Phone"))
-            interview_time = extract_datetime(props.get("Interview Time"))
-            notified = props.get("Notified", {}).get("checkbox", False)
+            name = extract_text(props.get("Candidate Name"))
+            email = extract_text(props.get("Email"))
+            interview_time = extract_datetime(props.get("Interview Date"))
+            reminder_sent_at = extract_datetime(props.get("Reminder Sent At"))
 
-            if not name or not interview_time:
-                print(f"⚠️ Skipping due to missing name or time.")
+            if not name or not interview_time or not email:
+                print(f"⚠️ Skipping due to missing data.")
                 continue
 
-            if notified:
-                print(f"⏭ Already notified: {name}")
+            if reminder_sent_at:
+                print(f"⏭ Already sent reminder to: {name}")
                 continue
 
             now = datetime.datetime.now(LOCAL_TIMEZONE)
             diff = (interview_time - now).total_seconds()
 
             if 0 <= diff <= 3600:
-                print(f"🔔 Sending reminder for {name} ({phone}) at {interview_time.strftime('%Y-%m-%d %H:%M')}")
-                send_reminder(name, phone, interview_time)
+                print(f"🔔 Sending reminder for {name} ({email})")
 
+                subject = f"Interview Reminder: {name}"
+                body = f"""Hi {name},
+
+This is a gentle reminder for your interview scheduled at {interview_time.strftime('%I:%M %p on %d %b, %Y')}.
+
+Best of luck!
+
+Regards,
+Team TalentNiti"""
+
+                send_email(service, email, subject, body)
+
+                # Update Notion timestamp
                 notion.pages.update(
                     page_id=result["id"],
-                    properties={"Notified": {"checkbox": True}}
+                    properties={
+                        "Reminder Sent At": {
+                            "date": {
+                                "start": now.isoformat()
+                            }
+                        }
+                    }
                 )
             else:
-                print(f"⏭ Skipping {name} — not within 15-minute window.")
+                print(f"⏭ Skipping {name} — interview not within 60-minute window.")
 
         except Exception as e:
             print(f"⚠️ Error processing a record: {e}")
