@@ -105,7 +105,7 @@ def main():
             now = datetime.datetime.now(LOCAL_TIMEZONE)
             diff = (interview_time - now).total_seconds()
 
-            if 0 <= diff <= 900:
+            if 0 <= diff <= 3600:
                 print(f"🔔 Sending reminder for {name} ({phone}) at {interview_time.strftime('%Y-%m-%d %H:%M')}")
                 send_reminder(name, phone, interview_time)
 
