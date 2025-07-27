@@ -13,12 +13,11 @@ LOCAL_TIMEZONE = pytz.timezone("Asia/Kolkata")
 NOTION_TOKEN = "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"
 DATABASE_ID = "23cfd797cac480d497f0d1a29c3bd52c"
 
-
 # 📧 Gmail API scopes
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 
 
-# ✅ Function to authenticate Gmail API
+# ✅ Authenticate Gmail
 def authenticate_gmail():
     creds = None
     token_path = "token.json"
@@ -34,7 +33,7 @@ def authenticate_gmail():
     return build('gmail', 'v1', credentials=creds)
 
 
-# ✉️ Function to send email
+# ✉️ Send Email
 def send_email(service, to, subject, body):
     from email.mime.text import MIMEText
     import base64
@@ -47,7 +46,7 @@ def send_email(service, to, subject, body):
     service.users().messages().send(userId="me", body=message_body).execute()
 
 
-# 🧠 Safe extraction from Notion fields
+# 🧠 Safe text extraction
 def extract_text(prop):
     if 'title' in prop and prop['title']:
         return prop['title'][0]['plain_text']
@@ -56,7 +55,7 @@ def extract_text(prop):
     return None
 
 
-# 📅 Extract datetime field safely
+# 📅 Safe date parsing
 def extract_datetime(prop):
     try:
         if prop and "date" in prop and prop["date"] and prop["date"]["start"]:
@@ -66,7 +65,13 @@ def extract_datetime(prop):
     return None
 
 
-# 🧠 Main function
+# 🧠 Send reminder (you can modify this to send WhatsApp or email)
+def send_reminder(name, phone, interview_time):
+    print(f"📤 Reminder sent to {name} ({phone}) for interview at {interview_time.strftime('%Y-%m-%d %H:%M')}")
+    # You can replace this with WhatsApp API or send_email() call
+
+
+# 🚀 Main script
 def main():
     print("⏳ Querying Notion database...")
     notion = Client(auth=NOTION_TOKEN)
@@ -80,39 +85,39 @@ def main():
         print(f"❌ Failed to fetch data from Notion: {e}")
         return
 
-    for page in results:
-        props = page["properties"]
+    for result in results:
+        try:
+            props = result["properties"]
 
-        candidate_name = extract_text(props.get("Candidate Name", {}))
-        email = extract_text(props.get("Email", {}))
-        phone = extract_text(props.get("Phone Number", {}))
-        company = extract_text(props.get("Company Name", {}))
-        interview_time = extract_datetime(props.get("Interview Date", {}))
+            name = extract_text(props.get("Name"))
+            phone = extract_text(props.get("Phone"))
+            interview_time = extract_datetime(props.get("Interview Time"))
+            notified = props.get("Notified", {}).get("checkbox", False)
 
-        # Print debug info for each record
-        print(f"\n🔍 Checking record:")
-        print(f"  Candidate: {candidate_name}, Email: {email}, Phone: {phone}")
-        print(f"  Company: {company}, Interview: {interview_time}")
+            if not name or not interview_time:
+                print(f"⚠️ Skipping due to missing name or time.")
+                continue
 
-        # Skip if any field is missing
-        if not all([candidate_name, email, phone, company, interview_time]):
-            print("⚠️ Skipping due to missing fields.")
-            continue
+            if notified:
+                print(f"⏭ Already notified: {name}")
+                continue
 
-        now = datetime.datetime.now(LOCAL_TIMEZONE)
-        delta = (interview_time - now).total_seconds() / 60  # in minutes
+            now = datetime.datetime.now(LOCAL_TIMEZONE)
+            diff = (interview_time - now).total_seconds()
 
-        if 0 <= delta <= 59:
-            subject = f"Interview Reminder: {company}"
-            body = f"Hi {candidate_name},\n\nThis is a quick reminder about your interview with {company} scheduled at {interview_time.strftime('%I:%M %p on %d-%b-%Y')}.\n\nBest of luck!\nRecruitment Team"
-            try:
-                send_email(service, email, subject, body)
-                print(f"✅ Reminder email sent to {email}")
-                # Optionally: update 'Reminder Sent At' in Notion here
-            except Exception as e:
-                print(f"❌ Failed to send email: {e}")
-        else:
-            print("⏱️ Not within 0-59 minutes range. Skipping.")
+            if 0 <= diff <= 900:
+                print(f"🔔 Sending reminder for {name} ({phone}) at {interview_time.strftime('%Y-%m-%d %H:%M')}")
+                send_reminder(name, phone, interview_time)
+
+                notion.pages.update(
+                    page_id=result["id"],
+                    properties={"Notified": {"checkbox": True}}
+                )
+            else:
+                print(f"⏭ Skipping {name} — not within 15-minute window.")
+
+        except Exception as e:
+            print(f"⚠️ Error processing a record: {e}")
 
     print("\n✅ Reminder check completed.")
 
