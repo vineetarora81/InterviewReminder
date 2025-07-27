@@ -10,24 +10,29 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+  - name: Checkout code
+    uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+  - name: Set up Python
+    uses: actions/setup-python@v4
+    with:
+      python-version: '3.10'
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
+  - name: Install dependencies
+    run: pip install -r requirements.txt
 
-      - name: Set Google credentials file
-        run: echo "$GOOGLE_CREDENTIALS" > credentials.json
-        env:
-          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+  - name: Create credentials.json from secret
+    run: echo "$GOOGLE_CREDENTIALS" > credentials.json
+    env:
+      GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
 
-      - name: Run reminder script
-        run: python reminder_sender.py
-        env:
-          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          DATABASE_ID: ${{ secrets.DATABASE_ID }}
+  - name: Create token.json from secret
+    run: echo "$GOOGLE_TOKEN" > token.json
+    env:
+      GOOGLE_TOKEN: ${{ secrets.GOOGLE_TOKEN }}
+
+  - name: Run Reminder Script
+    run: python reminder_sender.py
+    env:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      DATABASE_ID: ${{ secrets.DATABASE_ID }}
