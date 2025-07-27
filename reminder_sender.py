@@ -9,9 +9,16 @@ from google.auth.transport.requests import Request
 # ⏰ Timezone setup
 LOCAL_TIMEZONE = pytz.timezone("Asia/Kolkata")
 
+
 # --- CONFIGURATION ---
-NOTION_TOKEN = "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"
-DATABASE_ID = "23cfd797cac480d497f0d1a29c3bd52c"
+NOTION_TOKEN = os.environ.get("NOTION_TOKEN")
+DATABASE_ID = os.environ.get("DATABASE_ID")
+
+# ✅ Safety check for missing secrets
+if not NOTION_TOKEN or not DATABASE_ID:
+    raise ValueError("Missing NOTION_TOKEN or DATABASE_ID in environment variables.")
+
+
 
 # 📧 Gmail API scopes
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
