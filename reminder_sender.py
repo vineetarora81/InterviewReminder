@@ -92,6 +92,7 @@ def main():
 
             name = extract_text(props.get("Candidate Name"))
             email = extract_text(props.get("Email"))
+            company = extract_text(props.get("Company Name"))
             interview_time = extract_datetime(props.get("Interview Date"))
             reminder_sent_at = extract_datetime(props.get("Reminder Sent At"))
 
@@ -109,12 +110,14 @@ def main():
             if 0 <= diff <= 3600:
                 print(f"🔔 Sending reminder for {name} ({email})")
 
-                subject = f"Interview Reminder: {name}"
+                subject = f"Interview Reminder | {company} | {interview_time.strftime('%I:%M %p on %d %b, %Y')}"
                 body = f"""Hi {name},
 
-This is a gentle reminder for your interview scheduled at {interview_time.strftime('%I:%M %p on %d %b, %Y')}.
+This is a gentle reminder for your interview with {company} scheduled at {interview_time.strftime('%I:%M %p on %d %b, %Y')}.
 
-Best of luck!
+Let me know if you face any issues in connecting.
+
+All the best!
 
 Regards,
 Team TalentNiti"""
